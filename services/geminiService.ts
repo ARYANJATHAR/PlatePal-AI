@@ -52,7 +52,7 @@ const menuSchema = {
 
 export const processMenuImage = async (base64Image: string, mimeType: string): Promise<MenuItem[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-  const model = 'gemini-2.5-flash';
+  const model = 'models/gemini-2.5-flash';
   
   const prompt = `You are a friendly food guide. Your job is to make menus easy for everyone to understand. Look at the menu picture provided. For each food or drink item you see, explain it in a simple and clear way.
 - **Description:** Describe what the dish is, what's in it, and how it's made. Use everyday words. For example, instead of 'sautéed', you can say 'cooked in a pan with a little oil'. Make it sound delicious!
@@ -82,6 +82,10 @@ Your response must be ONLY the JSON array of objects, following the schema. Do n
       }
     });
 
+    if (!response.text) {
+      throw new Error("AI response did not contain any text content.");
+    }
+
     const jsonText = response.text.trim();
     const parsedData = JSON.parse(jsonText);
     
@@ -101,26 +105,38 @@ export const generateMenuItemImage = async (itemName: string): Promise<string> =
         const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
         const prompt = `A delicious, professional food photography shot of "${itemName}", plated beautifully on a clean, simple background.`;
         
+        console.log(`Attempting to generate image for: ${itemName}`);
+        
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'models/gemini-2.5-flash-image',
             contents: {
                 parts: [{ text: prompt }],
             },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            },
         });
 
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) {
-                const base64ImageBytes: string = part.inlineData.data;
+        console.log(`Image generation response:`, response);
+
+        if (!response?.candidates?.[0]?.content?.parts) {
+            console.warn("No candidates or content parts in response, using fallback");
+            throw new Error("No candidates in response");
+        }
+
+        const parts = response.candidates[0].content.parts;
+        for (const part of parts) {
+            if (part.inlineData?.data) {
+                const base64ImageBytes = part.inlineData.data as string;
+                console.log(`✓ Successfully generated image for ${itemName}`);
                 return `data:image/png;base64,${base64ImageBytes}`;
             }
         }
+        
+        console.warn(`No image data found in response for ${itemName}`);
         throw new Error("No image data found in the response.");
     } catch (error) {
-        console.error(`Failed to generate image for ${itemName}:`, error);
-        // Return a placeholder on error
-        return 'https://placehold.co/400x300/292524/e7e5e4/png?text=Image+Not+Found';
+        console.error(`✗ Failed to generate image for ${itemName}:`, error);
+        // Fallback to a food image service with the dish name
+        const foodImageUrl = `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80`;
+        console.log(`Using fallback image for ${itemName}`);
+        return foodImageUrl;
     }
 };
