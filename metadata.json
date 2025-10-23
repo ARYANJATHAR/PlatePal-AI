@@ -1,0 +1,7 @@
+{
+  "name": "PlatePal AI",
+  "description": "An AI-powered service to instantly translate and explain restaurant menus from a photo. Understand ingredients, preparation, and potential allergens with a simple snapshot.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
