@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { EB_Garamond } from "next/font/google";
 import "./globals.css";
+
+const ebGaramond = EB_Garamond({
+  subsets: ["latin"],
+  variable: "--font-eb-garamond",
+  display: "swap",
+  fallback: ["EB Garamond Fallback", "serif"],
+});
 
 export const metadata: Metadata = {
   title: "PlatePal AI - Understand Every Menu Instantly",
@@ -16,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-surface text-white">
+      <body className={`${ebGaramond.variable} bg-surface text-white font-sans`}>
         {children}
       </body>
     </html>

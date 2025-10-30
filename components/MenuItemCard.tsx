@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { MenuItem } from '../types';
 import { generateMenuItemImage } from '../services/geminiService';
@@ -24,12 +24,19 @@ const SpiceLevelIndicator: React.FC<{ level: keyof typeof spiceLevels }> = ({ le
 interface MenuItemCardProps {
   item: MenuItem;
   index: number;
+  isExpanded: boolean;
+  onCardClick: () => void;
 }
 
-export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, index }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+export const MenuItemCard: React.FC<MenuItemCardProps> = React.memo(({ item, index, isExpanded, onCardClick }) => {
     const [imageUrl, setImageUrl] = useState<string>('');
     const [isLoadingImage, setIsLoadingImage] = useState<boolean>(true);
+    
+    // Use ref to ensure this card instance is truly isolated
+    const cardRef = useRef<HTMLDivElement>(null);
+    
+    // Create a unique ID for this card instance
+    const cardId = React.useMemo(() => `card-${index}-${item.translatedName.replace(/\s+/g, '-')}`, [index, item.translatedName]);
 
     useEffect(() => {
         let isMounted = true;
@@ -49,48 +56,74 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, index }) => {
         };
     }, [item.translatedName]);
 
+    const handleCardClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+        
+        // Ensure this is the correct card being clicked
+        const target = e.currentTarget;
+        const cardIdAttr = target.getAttribute('data-card-clickable');
+        if (cardIdAttr === cardId) {
+            onCardClick();
+        }
+    }, [onCardClick, cardId]);
+
     return (
         <motion.div
+            ref={cardRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="glass-panel group cursor-pointer overflow-hidden rounded-2xl border border-white/10 shadow-lg shadow-brand/10 transition-all hover:border-brand/30 hover:shadow-brand/20"
+            className="glass-panel group overflow-hidden rounded-2xl border border-white/10 shadow-lg shadow-brand/10 transition-all hover:border-brand/30 hover:shadow-brand/20"
+            data-card-id={cardId}
+            onClick={(e) => {
+                // Prevent any clicks on the wrapper from propagating
+                e.stopPropagation();
+            }}
         >
-            <div className="w-full h-48 bg-white/5 flex items-center justify-center overflow-hidden">
-                {isLoadingImage ? (
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="w-8 h-8 border-2 border-brand/50 border-t-brand rounded-full"
-                    />
-                ) : (
-                    <img src={imageUrl} alt={item.translatedName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                )}
-            </div>
-            <div className="p-6 flex flex-col">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.originalName}</p>
-                <h3 className="mt-2 text-xl font-semibold text-white">{item.translatedName}</h3>
-                
-                <p className="mt-3 text-sm text-slate-300 line-clamp-2">{item.description}</p>
-
-                <div className="mt-4 flex items-center justify-between">
-                    <SpiceLevelIndicator level={item.spiceLevel} />
-                    <motion.span
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        className="text-sm font-semibold text-brand"
-                    >
-                        ↓
-                    </motion.span>
+            <div 
+                onClick={handleCardClick}
+                className="cursor-pointer select-none"
+                data-card-clickable={cardId}
+            >
+                <div className="w-full h-48 bg-white/5 flex items-center justify-center overflow-hidden">
+                    {isLoadingImage ? (
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="w-8 h-8 border-2 border-brand/50 border-t-brand rounded-full"
+                        />
+                    ) : (
+                        <img src={imageUrl} alt={item.translatedName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    )}
                 </div>
+                <div className="p-6 flex flex-col">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.originalName}</p>
+                    <h3 className="mt-2 text-xl font-semibold text-white">{item.translatedName}</h3>
+                    
+                    <p className="mt-3 text-sm text-slate-300 line-clamp-2">{item.description}</p>
 
-                <motion.div
-                    initial={false}
-                    animate={{ height: isExpanded ? "auto" : 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                >
-                    <div className="space-y-4 pt-4 border-t border-white/10">
+                    <div className="mt-4 flex items-center justify-between">
+                        <SpiceLevelIndicator level={item.spiceLevel} />
+                        <motion.span
+                            animate={{ rotate: isExpanded ? 180 : 0 }}
+                            className="text-sm font-semibold text-brand"
+                        >
+                            ↓
+                        </motion.span>
+                    </div>
+                </div>
+            </div>
+
+            <motion.div
+                initial={false}
+                animate={{ height: isExpanded ? "auto" : 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
+                    <div className="space-y-4 px-6 pt-4 pb-6 border-t border-white/10">
                         <p className="text-sm text-slate-300">{item.description}</p>
                         
                         {item.pairingSuggestion && (
@@ -127,8 +160,13 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, index }) => {
                             )}
                         </div>
                     </div>
-                </motion.div>
-            </div>
+            </motion.div>
         </motion.div>
     );
-};
+}, (prevProps, nextProps) => {
+    // Return true if props are equal (don't re-render), false if different (re-render)
+    return prevProps.isExpanded === nextProps.isExpanded && 
+           prevProps.index === nextProps.index &&
+           prevProps.item.translatedName === nextProps.item.translatedName &&
+           prevProps.item.originalName === nextProps.item.originalName;
+});

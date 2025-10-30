@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { MenuItem } from '../types';
 import { MenuItemCard } from './MenuItemCard';
@@ -10,6 +10,20 @@ interface ResultsDisplayProps {
 }
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ menuItems, onReset }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  // Reset expanded index when menu items change
+  useEffect(() => {
+    setExpandedIndex(null);
+  }, [menuItems]);
+
+  const handleCardClick = useCallback((index: number) => {
+    setExpandedIndex((currentIndex) => {
+      // If clicking the same card, collapse it. Otherwise, expand the clicked card
+      return currentIndex === index ? null : index;
+    });
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -37,9 +51,15 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ menuItems, onRes
         </motion.button>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 items-start">
         {menuItems.map((item, index) => (
-          <MenuItemCard key={index} item={item} index={index} />
+          <MenuItemCard 
+            key={`${item.translatedName}-${item.originalName}-${index}`} 
+            item={item} 
+            index={index}
+            isExpanded={expandedIndex === index}
+            onCardClick={() => handleCardClick(index)}
+          />
         ))}
       </div>
     </motion.div>

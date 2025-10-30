@@ -8,6 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-eb-garamond)", "EB Garamond Fallback", "serif"],
+      },
       colors: {
         brand: {
           DEFAULT: "#4f46e5",

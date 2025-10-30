@@ -8,6 +8,7 @@
 
 body {
   background-color: theme("colors.surface.DEFAULT");
+  font-family: var(--font-eb-garamond), 'EB Garamond Fallback', serif;
 }
 
 .hero-gradient {

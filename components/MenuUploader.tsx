@@ -109,7 +109,7 @@ export const MenuUploader: React.FC<MenuUploaderProps> = ({ onProcess }) => {
                 explanations, cultural notes, and allergen alerts.
               </li>
             </ol>
-            <p className="mt-6 rounded-2xl border border-brand/30 bg-brand/10 p-4 text-xs text-brand">
+            <p className="mt-6 rounded-2xl border border-brand/30 bg-brand/10 p-4 text-xs text-white">
               Tip: For best results, ensure menu text is clear and well-lit.
             </p>
           </div>
